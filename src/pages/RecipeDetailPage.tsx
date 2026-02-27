@@ -21,13 +21,14 @@ import type { RecipeUpdate } from '../types/api';
 
 export function RecipeDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const recipeId = Number(id);
   const navigate = useNavigate();
-  const { data: recipe, isLoading, error } = useRecipeQuery(id ?? '');
+  const { data: recipe, isLoading, error } = useRecipeQuery(recipeId);
   const updateMutation = useUpdateRecipeMutation();
   const deleteMutation = useDeleteRecipeMutation();
 
   const [editing, setEditing] = useState(false);
-  const [editData, setEditData] = useState<Partial<RecipeUpdate>>({});
+  const [editData, setEditData] = useState<RecipeUpdate>({});
 
   if (isLoading) {
     return (
@@ -52,22 +53,45 @@ export function RecipeDetailPage() {
     setEditData({
       title: recipe!.title,
       description: recipe!.description ?? '',
-      cooking_time: recipe!.cooking_time ?? undefined,
-      servings: recipe!.servings ?? undefined,
-      cuisine: recipe!.cuisine ?? '',
+      cooking_time: recipe!.cooking_time ?? '',
+      ingredients: recipe!.ingredients,
+      instructions: recipe!.instructions,
     });
     setEditing(true);
   }
 
   async function saveEdit() {
-    await updateMutation.mutateAsync({ id: id!, data: editData });
+    await updateMutation.mutateAsync({ id: recipeId, data: editData });
     setEditing(false);
   }
 
   async function handleDelete() {
-    await deleteMutation.mutateAsync(id!);
+    await deleteMutation.mutateAsync(recipeId);
     navigate('/recipes', { replace: true });
   }
+
+  // instructions is a newline-separated string from the backend
+  const instructionLines = recipe.instructions
+    .split('\n')
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+  // ingredients may come back as a single-element array containing a raw
+  // PostgreSQL array literal e.g. {"item1","item2"} — parse it if so
+  const ingredients = (() => {
+    const raw = recipe.ingredients;
+    if (raw.length === 1) {
+      const item = raw[0].trim();
+      if (item.startsWith('{') && item.endsWith('}')) {
+        try {
+          return JSON.parse(item.replace(/^\{/, '[').replace(/\}$/, ']')) as string[];
+        } catch {
+          // fall through
+        }
+      }
+    }
+    return raw;
+  })();
 
   return (
     <div className="mx-auto max-w-2xl">
@@ -96,34 +120,34 @@ export function RecipeDetailPage() {
               onChange={(e) => setEditData((d) => ({ ...d, description: e.target.value }))}
             />
           </div>
-          <div className="grid grid-cols-3 gap-4">
-            <div className="flex flex-col gap-2">
-              <Label>Cooking Time (min)</Label>
-              <Input
-                type="number"
-                value={editData.cooking_time ?? ''}
-                onChange={(e) =>
-                  setEditData((d) => ({ ...d, cooking_time: Number(e.target.value) || undefined }))
-                }
-              />
-            </div>
-            <div className="flex flex-col gap-2">
-              <Label>Servings</Label>
-              <Input
-                type="number"
-                value={editData.servings ?? ''}
-                onChange={(e) =>
-                  setEditData((d) => ({ ...d, servings: Number(e.target.value) || undefined }))
-                }
-              />
-            </div>
-            <div className="flex flex-col gap-2">
-              <Label>Cuisine</Label>
-              <Input
-                value={editData.cuisine ?? ''}
-                onChange={(e) => setEditData((d) => ({ ...d, cuisine: e.target.value }))}
-              />
-            </div>
+          <div className="flex flex-col gap-2">
+            <Label>Cooking Time</Label>
+            <Input
+              placeholder="e.g. 30 minutes"
+              value={editData.cooking_time ?? ''}
+              onChange={(e) => setEditData((d) => ({ ...d, cooking_time: e.target.value }))}
+            />
+          </div>
+          <div className="flex flex-col gap-2">
+            <Label>Ingredients (one per line)</Label>
+            <Textarea
+              value={(editData.ingredients ?? []).join('\n')}
+              rows={6}
+              onChange={(e) =>
+                setEditData((d) => ({
+                  ...d,
+                  ingredients: e.target.value.split('\n').map((s) => s.trim()).filter(Boolean),
+                }))
+              }
+            />
+          </div>
+          <div className="flex flex-col gap-2">
+            <Label>Instructions</Label>
+            <Textarea
+              value={editData.instructions ?? ''}
+              rows={8}
+              onChange={(e) => setEditData((d) => ({ ...d, instructions: e.target.value }))}
+            />
           </div>
           <div className="flex gap-2">
             <Button onClick={() => void saveEdit()} disabled={updateMutation.isPending}>
@@ -172,18 +196,11 @@ export function RecipeDetailPage() {
             </div>
           </div>
 
-          <div className="mb-4 flex flex-wrap gap-2">
-            {recipe.cooking_time && (
-              <Badge variant="secondary">{recipe.cooking_time} min</Badge>
-            )}
-            {recipe.servings && <Badge variant="secondary">{recipe.servings} servings</Badge>}
-            {recipe.cuisine && <Badge variant="outline">{recipe.cuisine}</Badge>}
-            {recipe.dietary_info?.map((d) => (
-              <Badge key={d} variant="outline">
-                {d}
-              </Badge>
-            ))}
-          </div>
+          {recipe.cooking_time && (
+            <div className="mb-4">
+              <Badge variant="secondary">{recipe.cooking_time}</Badge>
+            </div>
+          )}
 
           {recipe.description && (
             <p className="mb-6 text-muted-foreground">{recipe.description}</p>
@@ -191,20 +208,20 @@ export function RecipeDetailPage() {
 
           <div className="mb-6">
             <h2 className="mb-3 text-xl font-semibold">Ingredients</h2>
-            <ul className="list-inside list-disc space-y-1">
-              {recipe.ingredients.map((ing, i) => (
-                <li key={i}>{ing}</li>
+            <div className="space-y-1">
+              {ingredients.map((ing, i) => (
+                <p key={i}>{ing}</p>
               ))}
-            </ul>
+            </div>
           </div>
 
           <div>
             <h2 className="mb-3 text-xl font-semibold">Instructions</h2>
-            <ol className="list-inside list-decimal space-y-2">
-              {recipe.instructions.map((step, i) => (
-                <li key={i}>{step}</li>
+            <div className="space-y-2">
+              {instructionLines.map((step, i) => (
+                <p key={i}>{step}</p>
               ))}
-            </ol>
+            </div>
           </div>
         </>
       )}

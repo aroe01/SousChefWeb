@@ -20,7 +20,7 @@ export function useDeleteAccountMutation() {
   const { deleteAccount } = useAuthContext();
 
   return useMutation({
-    mutationFn: async (userId: string) => {
+    mutationFn: async (userId: number) => {
       await deleteUserAccount(userId);
       await deleteAccount();
     },

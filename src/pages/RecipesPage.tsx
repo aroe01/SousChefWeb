@@ -53,11 +53,7 @@ export function RecipesPage() {
               </CardHeader>
               <CardContent className="flex flex-wrap gap-2">
                 {recipe.cooking_time && (
-                  <Badge variant="secondary">{recipe.cooking_time} min</Badge>
-                )}
-                {recipe.cuisine && <Badge variant="outline">{recipe.cuisine}</Badge>}
-                {recipe.servings && (
-                  <Badge variant="outline">{recipe.servings} servings</Badge>
+                  <Badge variant="secondary">{recipe.cooking_time}</Badge>
                 )}
               </CardContent>
             </Card>

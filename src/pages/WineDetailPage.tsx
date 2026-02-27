@@ -21,13 +21,14 @@ import type { WineUpdate } from '../types/api';
 
 export function WineDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const wineId = Number(id);
   const navigate = useNavigate();
-  const { data: wine, isLoading, error } = useWineQuery(id ?? '');
+  const { data: wine, isLoading, error } = useWineQuery(wineId);
   const updateMutation = useUpdateWineMutation();
   const deleteMutation = useDeleteWineMutation();
 
   const [editing, setEditing] = useState(false);
-  const [editData, setEditData] = useState<Partial<WineUpdate>>({});
+  const [editData, setEditData] = useState<WineUpdate>({});
 
   if (isLoading) {
     return (
@@ -51,25 +52,22 @@ export function WineDetailPage() {
   function startEdit() {
     setEditData({
       name: wine!.name,
-      producer: wine!.producer ?? '',
-      vintage: wine!.vintage ?? undefined,
       varietal: wine!.varietal ?? '',
       region: wine!.region ?? '',
-      country: wine!.country ?? '',
+      vintage: wine!.vintage ?? undefined,
       tasting_notes: wine!.tasting_notes ?? '',
-      rating: wine!.rating ?? undefined,
-      price: wine!.price ?? undefined,
+      food_pairings: wine!.food_pairings,
     });
     setEditing(true);
   }
 
   async function saveEdit() {
-    await updateMutation.mutateAsync({ id: id!, data: editData });
+    await updateMutation.mutateAsync({ id: wineId, data: editData });
     setEditing(false);
   }
 
   async function handleDelete() {
-    await deleteMutation.mutateAsync(id!);
+    await deleteMutation.mutateAsync(wineId);
     navigate('/wines', { replace: true });
   }
 
@@ -94,23 +92,6 @@ export function WineDetailPage() {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="flex flex-col gap-2">
-              <Label>Producer</Label>
-              <Input
-                value={editData.producer ?? ''}
-                onChange={(e) => setEditData((d) => ({ ...d, producer: e.target.value }))}
-              />
-            </div>
-            <div className="flex flex-col gap-2">
-              <Label>Vintage</Label>
-              <Input
-                type="number"
-                value={editData.vintage ?? ''}
-                onChange={(e) =>
-                  setEditData((d) => ({ ...d, vintage: Number(e.target.value) || undefined }))
-                }
-              />
-            </div>
-            <div className="flex flex-col gap-2">
               <Label>Varietal</Label>
               <Input
                 value={editData.varietal ?? ''}
@@ -125,22 +106,13 @@ export function WineDetailPage() {
               />
             </div>
             <div className="flex flex-col gap-2">
-              <Label>Country</Label>
-              <Input
-                value={editData.country ?? ''}
-                onChange={(e) => setEditData((d) => ({ ...d, country: e.target.value }))}
-              />
-            </div>
-            <div className="flex flex-col gap-2">
-              <Label>Rating (0–5)</Label>
+              <Label>Vintage</Label>
               <Input
                 type="number"
-                step="0.1"
-                min="0"
-                max="5"
-                value={editData.rating ?? ''}
+                placeholder="e.g. 2019"
+                value={editData.vintage ?? ''}
                 onChange={(e) =>
-                  setEditData((d) => ({ ...d, rating: Number(e.target.value) || undefined }))
+                  setEditData((d) => ({ ...d, vintage: Number(e.target.value) || undefined }))
                 }
               />
             </div>
@@ -151,6 +123,19 @@ export function WineDetailPage() {
               value={editData.tasting_notes ?? ''}
               rows={4}
               onChange={(e) => setEditData((d) => ({ ...d, tasting_notes: e.target.value }))}
+            />
+          </div>
+          <div className="flex flex-col gap-2">
+            <Label>Food Pairings (one per line)</Label>
+            <Textarea
+              value={(editData.food_pairings ?? []).join('\n')}
+              rows={4}
+              onChange={(e) =>
+                setEditData((d) => ({
+                  ...d,
+                  food_pairings: e.target.value.split('\n').map((s) => s.trim()).filter(Boolean),
+                }))
+              }
             />
           </div>
           <div className="flex gap-2">
@@ -168,12 +153,7 @@ export function WineDetailPage() {
       ) : (
         <>
           <div className="mb-4 flex items-start justify-between gap-4">
-            <div>
-              <h1 className="text-3xl font-bold">{wine.name}</h1>
-              {wine.producer && (
-                <p className="mt-1 text-muted-foreground">{wine.producer}</p>
-              )}
-            </div>
+            <h1 className="text-3xl font-bold">{wine.name}</h1>
             <div className="flex shrink-0 gap-2">
               <Button variant="outline" size="sm" onClick={startEdit}>
                 Edit
@@ -209,11 +189,6 @@ export function WineDetailPage() {
             {wine.vintage && <Badge variant="secondary">{wine.vintage}</Badge>}
             {wine.varietal && <Badge variant="outline">{wine.varietal}</Badge>}
             {wine.region && <Badge variant="outline">{wine.region}</Badge>}
-            {wine.country && <Badge variant="outline">{wine.country}</Badge>}
-            {wine.rating && (
-              <Badge variant="secondary">{wine.rating.toFixed(1)} / 5</Badge>
-            )}
-            {wine.price && <Badge variant="outline">${wine.price.toFixed(2)}</Badge>}
           </div>
 
           {wine.tasting_notes && (
@@ -223,7 +198,7 @@ export function WineDetailPage() {
             </div>
           )}
 
-          {wine.food_pairings && wine.food_pairings.length > 0 && (
+          {wine.food_pairings.length > 0 && (
             <div>
               <h2 className="mb-2 text-xl font-semibold">Food Pairings</h2>
               <ul className="list-inside list-disc space-y-1 text-muted-foreground">

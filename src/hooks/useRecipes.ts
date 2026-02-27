@@ -11,7 +11,7 @@ import type { RecipeCreate, RecipeUpdate } from '../types/api';
 
 export const recipeKeys = {
   all: ['recipes'] as const,
-  detail: (id: string) => ['recipes', id] as const,
+  detail: (id: number) => ['recipes', id] as const,
 };
 
 export function useRecipesQuery() {
@@ -21,7 +21,7 @@ export function useRecipesQuery() {
   });
 }
 
-export function useRecipeQuery(id: string) {
+export function useRecipeQuery(id: number) {
   return useQuery({
     queryKey: recipeKeys.detail(id),
     queryFn: () => getRecipe(id),
@@ -52,7 +52,7 @@ export function useAnalyzeRecipeImagesMutation() {
 export function useUpdateRecipeMutation() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: RecipeUpdate }) => updateRecipe(id, data),
+    mutationFn: ({ id, data }: { id: number; data: RecipeUpdate }) => updateRecipe(id, data),
     onSuccess: (_data, { id }) => {
       void queryClient.invalidateQueries({ queryKey: recipeKeys.detail(id) });
       void queryClient.invalidateQueries({ queryKey: recipeKeys.all });
@@ -63,7 +63,7 @@ export function useUpdateRecipeMutation() {
 export function useDeleteRecipeMutation() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (id: string) => deleteRecipe(id),
+    mutationFn: (id: number) => deleteRecipe(id),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: recipeKeys.all });
     },

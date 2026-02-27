@@ -12,7 +12,7 @@ import type { WineCreate, WineUpdate } from '../types/api';
 
 export const wineKeys = {
   all: ['wines'] as const,
-  detail: (id: string) => ['wines', id] as const,
+  detail: (id: number) => ['wines', id] as const,
 };
 
 export function useWinesQuery() {
@@ -22,7 +22,7 @@ export function useWinesQuery() {
   });
 }
 
-export function useWineQuery(id: string) {
+export function useWineQuery(id: number) {
   return useQuery({
     queryKey: wineKeys.detail(id),
     queryFn: () => getWine(id),
@@ -40,26 +40,24 @@ export function useCreateWineMutation() {
   });
 }
 
+/** Returns WineAnalysisResponse (text only) — does NOT save a wine */
 export function useAnalyzeWineImagesMutation() {
-  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (formData: FormData) => analyzeWineImages(formData),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: wineKeys.all });
-    },
   });
 }
 
+/** Returns WineAnalysisResponse (text only) — does NOT save a wine */
 export function useWineAskMutation() {
   return useMutation({
-    mutationFn: (question: string) => askWineSommelier(question),
+    mutationFn: (prompt: string) => askWineSommelier(prompt),
   });
 }
 
 export function useUpdateWineMutation() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: WineUpdate }) => updateWine(id, data),
+    mutationFn: ({ id, data }: { id: number; data: WineUpdate }) => updateWine(id, data),
     onSuccess: (_data, { id }) => {
       void queryClient.invalidateQueries({ queryKey: wineKeys.detail(id) });
       void queryClient.invalidateQueries({ queryKey: wineKeys.all });
@@ -70,7 +68,7 @@ export function useUpdateWineMutation() {
 export function useDeleteWineMutation() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (id: string) => deleteWine(id),
+    mutationFn: (id: number) => deleteWine(id),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: wineKeys.all });
     },

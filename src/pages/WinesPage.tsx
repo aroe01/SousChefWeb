@@ -47,17 +47,13 @@ export function WinesPage() {
             <Card className="h-full transition-shadow group-hover:shadow-md">
               <CardHeader>
                 <CardTitle className="line-clamp-2">{wine.name}</CardTitle>
-                {wine.producer && (
-                  <CardDescription className="line-clamp-1">{wine.producer}</CardDescription>
+                {wine.region && (
+                  <CardDescription className="line-clamp-1">{wine.region}</CardDescription>
                 )}
               </CardHeader>
               <CardContent className="flex flex-wrap gap-2">
                 {wine.vintage && <Badge variant="secondary">{wine.vintage}</Badge>}
                 {wine.varietal && <Badge variant="outline">{wine.varietal}</Badge>}
-                {wine.region && <Badge variant="outline">{wine.region}</Badge>}
-                {wine.rating && (
-                  <Badge variant="secondary">{wine.rating.toFixed(1)} / 5</Badge>
-                )}
               </CardContent>
             </Card>
           </Link>

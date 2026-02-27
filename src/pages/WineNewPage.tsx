@@ -19,6 +19,7 @@ export function WineNewPage() {
 
   const [files, setFiles] = useState<FileList | null>(null);
   const [imagePrompt, setImagePrompt] = useState('');
+  const [imageResult, setImageResult] = useState('');
   const [imageError, setImageError] = useState('');
 
   const [question, setQuestion] = useState('');
@@ -33,10 +34,7 @@ export function WineNewPage() {
       return;
     }
     try {
-      const wine = await createMutation.mutateAsync({
-        name: describePrompt.slice(0, 60),
-        source_prompt: describePrompt,
-      });
+      const wine = await createMutation.mutateAsync({ prompt: describePrompt.trim() });
       navigate(`/wines/${wine.id}`);
     } catch (err) {
       setDescribeError((err as Error).message);
@@ -46,18 +44,21 @@ export function WineNewPage() {
   async function onImageSubmit(e: React.FormEvent) {
     e.preventDefault();
     setImageError('');
+    setImageResult('');
     if (!files || files.length === 0) {
       setImageError('Please select at least one image.');
       return;
     }
     const formData = new FormData();
     for (const file of Array.from(files)) {
-      formData.append('files', file);
+      // Backend expects field name "images"
+      formData.append('images', file);
     }
-    if (imagePrompt) formData.append('prompt', imagePrompt);
+    if (imagePrompt.trim()) formData.append('prompt', imagePrompt.trim());
     try {
-      const wine = await analyzeMutation.mutateAsync(formData);
-      navigate(`/wines/${wine.id}`);
+      const result = await analyzeMutation.mutateAsync(formData);
+      // Wine image analysis returns a text response, not a saved wine
+      setImageResult(result.response);
     } catch (err) {
       setImageError((err as Error).message);
     }
@@ -72,8 +73,8 @@ export function WineNewPage() {
       return;
     }
     try {
-      const result = await askMutation.mutateAsync(question);
-      setSommelierAnswer(result.answer);
+      const result = await askMutation.mutateAsync(question.trim());
+      setSommelierAnswer(result.response);
     } catch (err) {
       setAskError((err as Error).message);
     }
@@ -96,7 +97,7 @@ export function WineNewPage() {
               <Label htmlFor="describePrompt">Describe the wine</Label>
               <Textarea
                 id="describePrompt"
-                placeholder="E.g. A bold Napa Cabernet with dark fruit and cedar..."
+                placeholder="E.g. A bold Napa Cabernet to pair with a ribeye steak..."
                 rows={5}
                 value={describePrompt}
                 onChange={(e) => setDescribePrompt(e.target.value)}
@@ -104,7 +105,7 @@ export function WineNewPage() {
               {describeError && <p className="text-sm text-destructive">{describeError}</p>}
             </div>
             <Button type="submit" disabled={createMutation.isPending}>
-              {createMutation.isPending ? 'Saving...' : 'Save Wine'}
+              {createMutation.isPending ? 'Generating...' : 'Recommend a Wine'}
             </Button>
           </form>
         </TabsContent>
@@ -116,26 +117,37 @@ export function WineNewPage() {
               <Input
                 id="wineImages"
                 type="file"
-                accept="image/*"
+                accept="image/jpeg,image/png,image/gif,image/webp"
                 multiple
                 onChange={(e) => setFiles(e.target.files)}
               />
             </div>
             <div className="flex flex-col gap-2">
-              <Label htmlFor="wineImagePrompt">Additional instructions (optional)</Label>
+              <Label htmlFor="wineImagePrompt">Context (optional)</Label>
               <Textarea
                 id="wineImagePrompt"
-                placeholder="E.g. Focus on food pairings..."
+                placeholder="E.g. Which pairs best with fish?"
                 rows={3}
                 value={imagePrompt}
                 onChange={(e) => setImagePrompt(e.target.value)}
               />
             </div>
             <Button type="submit" disabled={analyzeMutation.isPending}>
-              {analyzeMutation.isPending ? 'Analyzing...' : 'Extract Wine from Photos'}
+              {analyzeMutation.isPending ? 'Analyzing...' : 'Analyze Label'}
             </Button>
             {imageError && <p className="text-sm text-destructive">{imageError}</p>}
           </form>
+
+          {imageResult && (
+            <Card className="mt-6">
+              <CardHeader>
+                <CardTitle className="text-base">Sommelier's Analysis</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="whitespace-pre-wrap text-sm leading-relaxed">{imageResult}</p>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
 
         <TabsContent value="ask">

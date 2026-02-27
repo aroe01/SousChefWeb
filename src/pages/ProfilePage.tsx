@@ -32,6 +32,12 @@ export function ProfilePage() {
     }
   }
 
+  // Use Firebase user for display info (photo, name) since UserResponse doesn't include photo_url
+  const displayName = profile?.display_name ?? user?.displayName ?? 'Anonymous';
+  const email = profile?.email ?? user?.email;
+  const initials =
+    displayName[0]?.toUpperCase() ?? email?.[0]?.toUpperCase() ?? 'U';
+
   return (
     <div className="mx-auto max-w-lg">
       <h1 className="mb-6 text-2xl font-bold">Profile</h1>
@@ -40,16 +46,12 @@ export function ProfilePage() {
         <CardHeader>
           <div className="flex items-center gap-4">
             <Avatar className="h-16 w-16">
-              <AvatarImage src={user?.photoURL ?? undefined} alt={user?.displayName ?? 'User'} />
-              <AvatarFallback className="text-xl">
-                {user?.displayName?.[0]?.toUpperCase() ??
-                  user?.email?.[0]?.toUpperCase() ??
-                  'U'}
-              </AvatarFallback>
+              <AvatarImage src={user?.photoURL ?? undefined} alt={displayName} />
+              <AvatarFallback className="text-xl">{initials}</AvatarFallback>
             </Avatar>
             <div>
-              <CardTitle>{user?.displayName ?? 'Anonymous'}</CardTitle>
-              <CardDescription>{user?.email}</CardDescription>
+              <CardTitle>{displayName}</CardTitle>
+              {email && <CardDescription>{email}</CardDescription>}
             </div>
           </div>
         </CardHeader>
@@ -81,7 +83,7 @@ export function ProfilePage() {
         <CardContent>
           <AlertDialog>
             <AlertDialogTrigger asChild>
-              <Button variant="destructive" disabled={deleteAccountMutation.isPending}>
+              <Button variant="destructive" disabled={deleteAccountMutation.isPending || !profile}>
                 {deleteAccountMutation.isPending ? 'Deleting…' : 'Delete Account'}
               </Button>
             </AlertDialogTrigger>
