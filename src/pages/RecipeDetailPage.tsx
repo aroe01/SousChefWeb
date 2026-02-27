@@ -76,23 +76,6 @@ export function RecipeDetailPage() {
     .map((s) => s.trim())
     .filter(Boolean);
 
-  // ingredients may come back as a single-element array containing a raw
-  // PostgreSQL array literal e.g. {"item1","item2"} — parse it if so
-  const ingredients = (() => {
-    const raw = recipe.ingredients;
-    if (raw.length === 1) {
-      const item = raw[0].trim();
-      if (item.startsWith('{') && item.endsWith('}')) {
-        try {
-          return JSON.parse(item.replace(/^\{/, '[').replace(/\}$/, ']')) as string[];
-        } catch {
-          // fall through
-        }
-      }
-    }
-    return raw;
-  })();
-
   return (
     <div className="mx-auto max-w-2xl">
       <div className="mb-4 flex items-center gap-2">
@@ -209,7 +192,7 @@ export function RecipeDetailPage() {
           <div className="mb-6">
             <h2 className="mb-3 text-xl font-semibold">Ingredients</h2>
             <div className="space-y-1">
-              {ingredients.map((ing, i) => (
+              {recipe.ingredients.map((ing, i) => (
                 <p key={i}>{ing}</p>
               ))}
             </div>
